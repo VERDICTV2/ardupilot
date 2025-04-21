@@ -1,4 +1,5 @@
 #include "Plane.h"
+#define LOG_REWVAR_MSG  0xF6  // Unique ID not used in upstream logs
 
 #if HAL_LOGGING_ENABLED
 
@@ -65,6 +66,11 @@ void Plane::Log_Write_FullRate(void)
     if (should_log(MASK_LOG_ATTITUDE_FULLRATE)) {
         Log_Write_Attitude();
     }
+
+    if (should_log(MASK_LOG_ATTITUDE_FAST)) {
+        Log_Write_REWVAR();  
+    }
+
 #if AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED
     if (should_log(MASK_LOG_NOTCH_FULLRATE)) {
         AP::ins().write_notch_log_messages();
@@ -229,6 +235,28 @@ void Plane::Log_Write_Status()
         ,throttle_supressed : throttle_suppressed
         };
 
+    logger.WriteBlock(&pkt, sizeof(pkt));
+}
+
+struct PACKED log_REWVAR {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t instance;
+    int32_t cm_per_sec;
+    int32_t millivolt;
+    int32_t hertz;
+};
+
+void Plane::Log_Write_REWVAR()
+{
+    struct log_REWVAR pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_REWVAR_MSG),
+        time_us     : AP_HAL::micros64(),
+        instance    : 1,       // Replace with actual variable
+        cm_per_sec  : 320,     // Example velocity
+        millivolt   : 5000,    // Example voltage
+        hertz       : 50       // Example frequency
+    };
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
 
@@ -480,6 +508,10 @@ const struct LogStructure Plane::log_structure[] = {
 // @FieldBitmaskEnum: Flags: log_PID_Flags
     { LOG_PIDG_MSG, sizeof(log_PID),
       "PIDG", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS , true },
+
+      { LOG_REWVAR_MSG, sizeof(log_REWVAR),
+        "RWVR", "QBiII", "TimeUS,instance,cmps,mvolt,hz", "s--n-", "F--0-", true },      
+      
 
 // @LoggerMessage: AETR
 // @Description: Normalised pre-mixer control surface outputs

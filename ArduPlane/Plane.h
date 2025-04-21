@@ -1328,6 +1328,7 @@ public:
         return (aparm.takeoff_options & int32_t(option)) != 0;
     }
    
+    void Log_Write_REWVAR();
 
 };
 
